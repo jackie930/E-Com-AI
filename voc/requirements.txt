@@ -1,0 +1,6 @@
+transformers==4.6.0
+datasets==1.11.0
+sentencepiece==0.1.91
+pytorch_lightning==0.8.1
+jieba
+editdistance
