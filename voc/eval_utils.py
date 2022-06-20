@@ -18,8 +18,8 @@ aspect_cate_list = ['location general',
                     'food style_options']
 
 #read list
-with open('tag.txt') as f:
-    tag_list = [i.replace("\n","") for i in f.readlines()]
+#with open('tag.txt') as f:
+ #   tag_list = [i.replace("\n","") for i in f.readlines()]
 
 
 def extract_spans_extraction(task, seq,label_len=2):
