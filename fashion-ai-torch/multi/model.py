@@ -38,13 +38,13 @@ class MultiOutputModel(nn.Module):
 
         return {
             'color': self.color(x),
-            'gender': self.gender(x),
-            'article': self.article(x)
+            'pattern': self.gender(x),
+            'style': self.article(x)
         }
 
     def get_loss(self, net_output, ground_truth):
         color_loss = F.cross_entropy(net_output['color'], ground_truth['color_labels'])
-        gender_loss = F.cross_entropy(net_output['gender'], ground_truth['gender_labels'])
-        article_loss = F.cross_entropy(net_output['article'], ground_truth['article_labels'])
+        gender_loss = F.cross_entropy(net_output['pattern'], ground_truth['pattern_labels'])
+        article_loss = F.cross_entropy(net_output['style'], ground_truth['style_labels'])
         loss = color_loss + gender_loss + article_loss
-        return loss, {'color': color_loss, 'gender': gender_loss, 'article': article_loss}
+        return loss, {'color': color_loss, 'pattern': gender_loss, 'style': article_loss}

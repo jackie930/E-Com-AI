@@ -109,7 +109,7 @@ if __name__ == '__main__':
             loss_train.backward()
             optimizer.step()
 
-        print("epoch {:4d}, loss: {:.4f}, color: {:.4f}, gender: {:.4f}, article: {:.4f}".format(
+        print("epoch {:4d}, loss: {:.4f}, color: {:.4f}, pattern: {:.4f}, style: {:.4f}".format(
             epoch,
             total_loss / n_train_samples,
             accuracy_color / n_train_samples,

@@ -10,33 +10,34 @@ std = [0.229, 0.224, 0.225]
 
 class AttributesDataset():
     def __init__(self, annotation_path):
+        #todo: update by num class
         color_labels = []
-        gender_labels = []
-        article_labels = []
+        pattern_labels = []
+        style_labels = []
 
         with open(annotation_path) as f:
             reader = csv.DictReader(f)
             for row in reader:
-                color_labels.append(row['baseColour'])
-                gender_labels.append(row['gender'])
-                article_labels.append(row['articleType'])
+                color_labels.append(row['顏色(Color)'])
+                pattern_labels.append(row['圖案(Pattern Type)'])
+                style_labels.append(row['風格(Style)'])
 
         self.color_labels = np.unique(color_labels)
-        self.gender_labels = np.unique(gender_labels)
-        self.article_labels = np.unique(article_labels)
+        self.pattern_labels = np.unique(pattern_labels)
+        self.style_labels = np.unique(style_labels)
 
         self.num_colors = len(self.color_labels)
-        self.num_genders = len(self.gender_labels)
-        self.num_articles = len(self.article_labels)
+        self.num_patterns = len(self.pattern_labels)
+        self.num_styles = len(self.style_labels)
 
         self.color_id_to_name = dict(zip(range(len(self.color_labels)), self.color_labels))
         self.color_name_to_id = dict(zip(self.color_labels, range(len(self.color_labels))))
 
-        self.gender_id_to_name = dict(zip(range(len(self.gender_labels)), self.gender_labels))
-        self.gender_name_to_id = dict(zip(self.gender_labels, range(len(self.gender_labels))))
+        self.pattern_id_to_name = dict(zip(range(len(self.pattern_labels)), self.pattern_labels))
+        self.pattern_name_to_id = dict(zip(self.pattern_labels, range(len(self.pattern_labels))))
 
-        self.article_id_to_name = dict(zip(range(len(self.article_labels)), self.article_labels))
-        self.article_name_to_id = dict(zip(self.article_labels, range(len(self.article_labels))))
+        self.style_id_to_name = dict(zip(range(len(self.style_labels)), self.style_labels))
+        self.style_name_to_id = dict(zip(self.style_labels, range(len(self.style_labels))))
 
 
 class FashionDataset(Dataset):
@@ -49,17 +50,17 @@ class FashionDataset(Dataset):
         # initialize the arrays to store the ground truth labels and paths to the images
         self.data = []
         self.color_labels = []
-        self.gender_labels = []
-        self.article_labels = []
+        self.pattern_labels = []
+        self.style_labels = []
 
         # read the annotations from the CSV file
         with open(annotation_path) as f:
             reader = csv.DictReader(f)
             for row in reader:
                 self.data.append(row['image_path'])
-                self.color_labels.append(self.attr.color_name_to_id[row['baseColour']])
-                self.gender_labels.append(self.attr.gender_name_to_id[row['gender']])
-                self.article_labels.append(self.attr.article_name_to_id[row['articleType']])
+                self.color_labels.append(self.attr.color_name_to_id[row['顏色(Color)']])
+                self.pattern_labels.append(self.attr.pattern_name_to_id[row['圖案(Pattern Type)']])
+                self.style_labels.append(self.attr.style_name_to_id[row['風格(Style)']])
 
     def __len__(self):
         return len(self.data)
@@ -80,8 +81,8 @@ class FashionDataset(Dataset):
             'img': img,
             'labels': {
                 'color_labels': self.color_labels[idx],
-                'gender_labels': self.gender_labels[idx],
-                'article_labels': self.article_labels[idx]
+                'pattern_labels': self.pattern_labels[idx],
+                'style_labels': self.style_labels[idx]
             }
         }
         return dict_data

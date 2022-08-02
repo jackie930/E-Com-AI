@@ -196,11 +196,11 @@ def calculate_metrics(output, target):
     _, predicted_color = output['color'].cpu().max(1)
     gt_color = target['color_labels'].cpu()
 
-    _, predicted_gender = output['gender'].cpu().max(1)
-    gt_gender = target['gender_labels'].cpu()
+    _, predicted_gender = output['pattern'].cpu().max(1)
+    gt_gender = target['pattern_labels'].cpu()
 
-    _, predicted_article = output['article'].cpu().max(1)
-    gt_article = target['article_labels'].cpu()
+    _, predicted_article = output['style'].cpu().max(1)
+    gt_article = target['style_labels'].cpu()
 
     with warnings.catch_warnings():  # sklearn may produce a warning when processing zero row in confusion matrix
         warnings.simplefilter("ignore")
