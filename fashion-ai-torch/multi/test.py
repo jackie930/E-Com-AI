@@ -52,7 +52,7 @@ def validate(model, dataloader, logger, iteration, device, checkpoint=None):
     accuracy_gender /= n_samples
     accuracy_article /= n_samples
     print('-' * 72)
-    print("Validation  loss: {:.4f}, color: {:.4f}, gender: {:.4f}, article: {:.4f}\n".format(
+    print("Validation  loss: {:.4f}, color: {:.4f}, pattern: {:.4f}, style: {:.4f}\n".format(
         avg_loss, accuracy_color, accuracy_gender, accuracy_article))
 
     logger.add_scalar('val_loss', avg_loss, iteration)

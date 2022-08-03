@@ -12,7 +12,7 @@ class MultiOutputModel(nn.Module):
         # the input for the classifier should be two-dimensional, but we will have
         # [<batch_size>, <channels>, <width>, <height>]
         # so, let's do the spatial averaging: reduce <width> and <height> to 1
-        self.pool = nn.AdaptiveAvgPool2D((1, 1))
+        self.pool = nn.AdaptiveAvgPool2d((1, 1))
         # create separate classifiers for our outputs
         self.color = nn.Sequential(
             nn.Dropout(p=0.2),

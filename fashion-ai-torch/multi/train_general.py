@@ -4,8 +4,8 @@ from datetime import datetime
 
 import torch
 import torchvision.transforms as transforms
-from dataset import FashionDataset, AttributesDataset, mean, std
-from model import MultiOutputModel
+from dataset_general import FashionDataset, AttributesDataset, mean, std
+from model_general import MultiOutputModel
 from test import calculate_metrics, validate, visualize_grid
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
@@ -64,10 +64,7 @@ if __name__ == '__main__':
     val_dataset = FashionDataset(os.path.join(args.sourcedir, 'test.csv'), attributes, val_transform)
     val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
 
-    model = MultiOutputModel(n_color_classes=attributes.num_colors,
-                             n_gender_classes=attributes.num_patterns,
-                             n_article_classes=attributes.num_styles)\
-                            .to(device)
+    model = MultiOutputModel(feature_dict=attributes.feature_dict).to(device)
 
     optimizer = torch.optim.Adam(model.parameters())
 
@@ -108,17 +105,19 @@ if __name__ == '__main__':
 
             loss_train, losses_train = model.get_loss(output, target_labels)
             total_loss += loss_train.item()
-            batch_accuracy_color, batch_accuracy_gender, batch_accuracy_article = \
-                calculate_metrics(output, target_labels)
+            #batch_accuracy_color, batch_accuracy_gender, batch_accuracy_article = \
+             #   calculate_metrics(output, target_labels)
 
-            accuracy_color += batch_accuracy_color
-            accuracy_gender += batch_accuracy_gender
-            accuracy_article += batch_accuracy_article
+            #accuracy_color += batch_accuracy_color
+            #accuracy_gender += batch_accuracy_gender
+            #accuracy_article += batch_accuracy_article
 
             loss_train.backward()
             optimizer.step()
 
-            tepoch.set_postfix(loss=loss_train.item(), accuracy=100. * accuracy_color)
+            tepoch.set_postfix(loss=loss_train.item())
+
+            #tepoch.set_postfix(loss=loss_train.item(), accuracy=100. * accuracy_color)
             sleep(0.1)
 
 
