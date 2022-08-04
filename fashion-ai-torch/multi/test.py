@@ -62,6 +62,38 @@ def validate(model, dataloader, logger, iteration, device, checkpoint=None):
 
     model.train()
 
+def validate_general(model, dataloader, attributes, device, checkpoint=None):
+    if checkpoint is not None:
+        checkpoint_load(model, checkpoint)
+
+    model.eval()
+    with torch.no_grad():
+        avg_loss = 0
+        acc = {}
+        for i in attributes.feature_dict:
+            acc[i] = 0
+
+        for batch in dataloader:
+            img = batch['img']
+            target_labels = batch['labels']
+            target_labels = {t: target_labels[t].to(device) for t in target_labels}
+            output = model(img.to(device))
+
+            val_train, val_train_losses = model.get_loss(output, target_labels)
+            avg_loss += val_train.item()
+            batch_accuracy = calculate_metrics_general(output, target_labels)
+            for j in acc.keys():
+                acc[j] += batch_accuracy[j]
+
+    n_samples = len(dataloader)
+    avg_loss /= n_samples
+
+    print('-' * 72)
+    print("Validation  loss: {:.4f} \n".format(avg_loss))
+    for i in attributes.feature_dict:
+        print ("accuracy for {} is {} \n".format(i,acc[i]/n_samples))
+
+    model.train()
 
 def visualize_grid(model, dataloader, attributes, device, show_cn_matrices=True, show_images=True, checkpoint=None,
                    show_gt=False):
@@ -210,6 +242,21 @@ def calculate_metrics(output, target):
 
     return accuracy_color, accuracy_gender, accuracy_article
 
+def calculate_metrics_general(output, target):
+    #print ("<<< output", output)
+    #print ("<<< output keys: ", list(output))
+    #print("<<< target keys: ", list(target))
+    res = {}
+    for i in list(output):
+        _, predicted = output[i].cpu().max(1)
+        gt = target[i+'_labels'].cpu()
+
+        with warnings.catch_warnings():  # sklearn may produce a warning when processing zero row in confusion matrix
+            warnings.simplefilter("ignore")
+            res[i] = balanced_accuracy_score(y_true=gt.numpy(), y_pred=predicted.numpy())
+
+    #print ("<<< acc: ", res)
+    return res
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Inference pipeline')

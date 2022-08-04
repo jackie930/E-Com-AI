@@ -9,36 +9,33 @@ std = [0.229, 0.224, 0.225]
 
 
 class AttributesDataset():
-    def __init__(self, annotation_path):
-        #todo: update by num class
-        color_labels = []
-        pattern_labels = []
-        style_labels = []
+    def __init__(self, annotation_path, keylist):
+        self.res_labels = {}
+        self.id_to_name = {}
+        self.name_to_id = {}
+        self.label_len = {}
+
+        #self.keys = ['顏色(Color)','圖案(Pattern Type)','風格(Style)']
+        self.keys = keylist
+
+        for i in self.keys:
+            self.res_labels[i] = []
 
         with open(annotation_path) as f:
             reader = csv.DictReader(f)
             for row in reader:
-                color_labels.append(row['顏色(Color)'])
-                pattern_labels.append(row['圖案(Pattern Type)'])
-                style_labels.append(row['風格(Style)'])
+                for j in self.keys:
+                    self.res_labels[j].append(row[j])
 
-        self.color_labels = np.unique(color_labels)
-        self.pattern_labels = np.unique(pattern_labels)
-        self.style_labels = np.unique(style_labels)
+        for i in self.keys:
+            self.res_labels[i] = np.unique(self.res_labels[i])
+            self.label_len[i] = len((self.res_labels[i]))
+            self.id_to_name[i] = dict(zip(range(len(self.res_labels[i])), self.res_labels[i]))
+            self.name_to_id[i] = dict(zip(self.res_labels[i],range(len(self.res_labels[i]))))
 
-        self.num_colors = len(self.color_labels)
-        self.num_patterns = len(self.pattern_labels)
-        self.num_styles = len(self.style_labels)
-
-        self.color_id_to_name = dict(zip(range(len(self.color_labels)), self.color_labels))
-        self.color_name_to_id = dict(zip(self.color_labels, range(len(self.color_labels))))
-
-        self.pattern_id_to_name = dict(zip(range(len(self.pattern_labels)), self.pattern_labels))
-        self.pattern_name_to_id = dict(zip(self.pattern_labels, range(len(self.pattern_labels))))
-
-        self.style_id_to_name = dict(zip(range(len(self.style_labels)), self.style_labels))
-        self.style_name_to_id = dict(zip(self.style_labels, range(len(self.style_labels))))
-
+        self.feature_dict = {}
+        for i in self.keys:
+            self.feature_dict[i] = self.label_len[i]
 
 class FashionDataset(Dataset):
     def __init__(self, annotation_path, attributes, transform=None):
@@ -49,18 +46,22 @@ class FashionDataset(Dataset):
 
         # initialize the arrays to store the ground truth labels and paths to the images
         self.data = []
-        self.color_labels = []
-        self.pattern_labels = []
-        self.style_labels = []
+        self.labels = {}
+
+        for i in self.attr.keys:
+            self.labels[i] = []
 
         # read the annotations from the CSV file
         with open(annotation_path) as f:
             reader = csv.DictReader(f)
             for row in reader:
                 self.data.append(row['image_path'])
-                self.color_labels.append(self.attr.color_name_to_id[row['顏色(Color)']])
-                self.pattern_labels.append(self.attr.pattern_name_to_id[row['圖案(Pattern Type)']])
-                self.style_labels.append(self.attr.style_name_to_id[row['風格(Style)']])
+                for i in self.attr.keys:
+                    #print ("<<< key:", i)
+                    #print("<<< row[i]:", row[i])
+
+                    #print ('<<< self.attr.name_to_id[i]', self.attr.name_to_id[i])
+                    self.labels[i].append(self.attr.name_to_id[i][row[i]])
 
     def __len__(self):
         return len(self.data)
@@ -77,12 +78,13 @@ class FashionDataset(Dataset):
             img = self.transform(img)
 
         # return the image and all the associated labels
+
+        label_dict = {}
+        for i in self.attr.keys:
+            label_dict[i+'_labels'] = self.labels[i][idx]
+
         dict_data = {
             'img': img,
-            'labels': {
-                'color_labels': self.color_labels[idx],
-                'pattern_labels': self.pattern_labels[idx],
-                'style_labels': self.style_labels[idx]
-            }
+            'labels': label_dict
         }
         return dict_data

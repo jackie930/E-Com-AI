@@ -15,13 +15,17 @@ class MultiOutputModel(nn.Module):
         self.pool = nn.AdaptiveAvgPool2d((1, 1))
         # create separate classifiers for our outputs
         self.key_ls = list(feature_dict.keys())
-        self.class_len_ls = list(feature_dict.values())
 
+        print ("<<< self.key_ls: ", self.key_ls)
+        self.class_len_ls = list(feature_dict.values())
+        print("<<< self.class_len_ls: ", self.class_len_ls)
+
+        self.tasks = nn.ModuleList()
         for i in range(len(self.key_ls)):
-            self.key_ls[i] = nn.Sequential(
-                nn.Dropout(p=0.2),
-                nn.Linear(in_features=last_channel, out_features=self.class_len_ls[i])
-            )
+            self.tasks.add_module(
+                self.key_ls[i], nn.Sequential(nn.Dropout(p=0.2),
+                nn.Linear(in_features=last_channel, out_features=self.class_len_ls[i])))
+
 
     def forward(self, x):
         x = self.base_model(x)
@@ -31,15 +35,24 @@ class MultiOutputModel(nn.Module):
         x = torch.flatten(x, start_dim=1)
 
         return_dict = {}
-        for i in self.key_ls:
-            return_dict[i] = self.i(x)
+        #return_dict = {task: F.interpolate(self.decoders[task](shared_representation), out_size, mode='bilinear') for task in self.tasks}
+        #print ("<<<model: ", self)
+        #print ("<<< self.tasks", self.tasks)
+        i = 0
+        for task in self.tasks:
+            #print("<<< key: ", i)
+            return_dict[self.key_ls[i]] = task(x)
+            i = i+1
+
+        #print ("<<< return dict: ", return_dict)
 
         return return_dict
 
     def get_loss(self, net_output, ground_truth):
         loss_ls = []
         for i in self.key_ls:
-            loss_ls.append(F.cross_entropy(net_output[i], ground_truth[i]))
+            g_label = str(i)+'_labels'
+            loss_ls.append(F.cross_entropy(net_output[i], ground_truth[g_label]))
 
         loss = sum(loss_ls)
 

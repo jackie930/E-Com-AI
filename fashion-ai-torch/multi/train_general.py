@@ -6,7 +6,7 @@ import torch
 import torchvision.transforms as transforms
 from dataset_general import FashionDataset, AttributesDataset, mean, std
 from model_general import MultiOutputModel
-from test import calculate_metrics, validate, visualize_grid
+from test import calculate_metrics, validate, visualize_grid, calculate_metrics_general,validate_general
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from time import sleep
@@ -31,7 +31,12 @@ if __name__ == '__main__':
     parser.add_argument('--sourcedir', type=str, default='./', help="train/test data folder")
     parser.add_argument('--batch_size', type=int, default=8, help="batch size")
     parser.add_argument('--epoch', type=int, default=10, help="train epoch")
+    parser.add_argument('--keylist', type=str, default="顏色(Color),風格(Style)", help="key list")
+
     args = parser.parse_args()
+
+    args.keylist = args.keylist.split(',')
+    print ("key_list: ", args.keylist)
 
     start_epoch = 1
     N_epochs = args.epoch
@@ -40,7 +45,7 @@ if __name__ == '__main__':
     device = torch.device("cuda" if torch.cuda.is_available() and args.device == 'cuda' else "cpu")
 
     # attributes variable contains labels for the categories in the dataset and mapping between string names and IDs
-    attributes = AttributesDataset(args.attributes_file)
+    attributes = AttributesDataset(args.attributes_file,args.keylist)
 
     # specify image transforms for augmentation during training
     train_transform = transforms.Compose([
@@ -65,6 +70,7 @@ if __name__ == '__main__':
     val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
 
     model = MultiOutputModel(feature_dict=attributes.feature_dict).to(device)
+    #print (summary(model,(3,244,244)))
 
     optimizer = torch.optim.Adam(model.parameters())
 
@@ -87,9 +93,11 @@ if __name__ == '__main__':
 
     for epoch in range(start_epoch, N_epochs + 1):
         total_loss = 0
-        accuracy_color = 0
-        accuracy_gender = 0
-        accuracy_article = 0
+
+        acc = {}
+        for i in attributes.feature_dict:
+            acc[i] = 0
+
 
         #with tqdm(train_dataloader) as tepoch:
         tepoch = tqdm(train_dataloader)
@@ -105,33 +113,32 @@ if __name__ == '__main__':
 
             loss_train, losses_train = model.get_loss(output, target_labels)
             total_loss += loss_train.item()
-            #batch_accuracy_color, batch_accuracy_gender, batch_accuracy_article = \
-             #   calculate_metrics(output, target_labels)
+            batch_accuracy = calculate_metrics_general(output, target_labels)
 
-            #accuracy_color += batch_accuracy_color
-            #accuracy_gender += batch_accuracy_gender
-            #accuracy_article += batch_accuracy_article
+            for j in acc.keys():
+                acc[j] += batch_accuracy[j]
 
             loss_train.backward()
             optimizer.step()
 
             tepoch.set_postfix(loss=loss_train.item())
 
-            #tepoch.set_postfix(loss=loss_train.item(), accuracy=100. * accuracy_color)
+            #tepoch.set_postfix(loss=loss_train.item(), accuracy=acc)
             sleep(0.1)
 
 
-        print("epoch {:4d}, loss: {:.4f}, color: {:.4f}, pattern: {:.4f}, style: {:.4f}".format(
+        print("epoch {:4d}, loss: {:.4f}, n_train_samples: {:4d}".format(
             epoch,
             total_loss / n_train_samples,
-            accuracy_color / n_train_samples,
-            accuracy_gender / n_train_samples,
-            accuracy_article / n_train_samples))
+            n_train_samples))
+
+        for i in attributes.feature_dict:
+            print("epoch {:4d}, accuracy for {} is {}".format(epoch, i, acc[i] / n_train_samples))
 
         logger.add_scalar('train_loss', total_loss / n_train_samples, epoch)
 
-        if epoch % 3 == 0:
-            validate(model, val_dataloader, logger, epoch, device)
+        if epoch % 1 == 0:
+            validate_general(model, val_dataloader, attributes, device)
 
-        if epoch % 3 == 0:
+        if epoch % 1 == 0:
             checkpoint_save(model, savedir, epoch)
