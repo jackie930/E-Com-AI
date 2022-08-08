@@ -54,8 +54,10 @@ if __name__ == '__main__':
     # attributes variable contains labels for the categories in the dataset and mapping between string names and IDs
     attributes = AttributesDataset(args.attributes_file)
 
+    img_size = [1785,1340]
     # specify image transforms for augmentation during training
     train_transform = transforms.Compose([
+        transforms.Resize(img_size),
         transforms.RandomHorizontalFlip(p=0.5),
         transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0),
         transforms.RandomAffine(degrees=20, translate=(0.1, 0.1), scale=(0.8, 1.2),
@@ -66,6 +68,7 @@ if __name__ == '__main__':
 
     # during validation we use only tensor and normalization transforms
     val_transform = transforms.Compose([
+        transforms.Resize(img_size),
         transforms.ToTensor(),
         transforms.Normalize(mean, std)
     ])
