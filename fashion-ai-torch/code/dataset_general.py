@@ -1,5 +1,5 @@
 import csv
-
+import pandas as pd
 import numpy as np
 from PIL import Image
 from torch.utils.data import Dataset
@@ -9,14 +9,16 @@ std = [0.229, 0.224, 0.225]
 
 
 class AttributesDataset():
-    def __init__(self, annotation_path, keylist):
+    def __init__(self, annotation_path):
         self.res_labels = {}
         self.id_to_name = {}
         self.name_to_id = {}
         self.label_len = {}
 
         #self.keys = ['顏色(Color)','圖案(Pattern Type)','風格(Style)']
-        self.keys = keylist
+        df = pd.read_csv(annotation_path)
+        self.keys = list(df.columns)
+        print ("<<< train key list: ", self.keys)
 
         for i in self.keys:
             self.res_labels[i] = []

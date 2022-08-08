@@ -31,12 +31,8 @@ if __name__ == '__main__':
     parser.add_argument('--sourcedir', type=str, default='./', help="train/test data folder")
     parser.add_argument('--batch_size', type=int, default=8, help="batch size")
     parser.add_argument('--epoch', type=int, default=10, help="train epoch")
-    parser.add_argument('--keylist', type=str, default="顏色(Color),風格(Style)", help="key list")
 
     args = parser.parse_args()
-
-    args.keylist = args.keylist.split(',')
-    print ("key_list: ", args.keylist)
 
     start_epoch = 1
     N_epochs = args.epoch
@@ -45,7 +41,7 @@ if __name__ == '__main__':
     device = torch.device("cuda" if torch.cuda.is_available() and args.device == 'cuda' else "cpu")
 
     # attributes variable contains labels for the categories in the dataset and mapping between string names and IDs
-    attributes = AttributesDataset(args.attributes_file,args.keylist)
+    attributes = AttributesDataset(args.attributes_file)
 
     # specify image transforms for augmentation during training
     train_transform = transforms.Compose([
@@ -137,8 +133,8 @@ if __name__ == '__main__':
 
         logger.add_scalar('train_loss', total_loss / n_train_samples, epoch)
 
-        if epoch % 1 == 0:
+        if epoch % 5 == 0:
             validate_general(model, val_dataloader, attributes, device)
 
-        if epoch % 1 == 0:
+        if epoch % 10 == 0:
             checkpoint_save(model, savedir, epoch)
