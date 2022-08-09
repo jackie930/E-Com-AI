@@ -6,6 +6,7 @@ from PIL import Image
 
 mean = [0.485, 0.456, 0.406]
 std = [0.229, 0.224, 0.225]
+img_size = [1785, 1340]
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 attributes = AttributesDataset('./model_data/total.csv')
@@ -22,8 +23,9 @@ if __name__ == '__main__':
     #img = img.convert("RGB")
 
     val_transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize(mean, std)
+        transforms.Resize(img_size),
+        transforms.ToTensor(),
+        transforms.Normalize(mean, std)
         ])
 
     x = val_transform(img)
