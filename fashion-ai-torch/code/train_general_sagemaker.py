@@ -24,9 +24,11 @@ def get_cur_time():
     return datetime.strftime(datetime.now(), '%Y-%m-%d_%H-%M')
 
 
-def checkpoint_save(model, name, epoch):
+def checkpoint_save(model, name, epoch, feature_dict, feature_dict_map):
     f = os.path.join(name, 'checkpoint-{:06d}.pth'.format(epoch))
-    torch.save(model.state_dict(), f)
+    torch.save({'model_state_dict': model.state_dict(),
+                'feature_dict': feature_dict,
+                'feature_dict_map':feature_dict_map}, f)
     print('Saved checkpoint:', f)
 
 
@@ -152,4 +154,4 @@ if __name__ == '__main__':
             validate_general(model, val_dataloader, attributes, device)
 
         if epoch % args.save_epoch == 0:
-            checkpoint_save(model, savedir, epoch)
+            checkpoint_save(model, savedir, epoch, attributes.feature_dict, attributes.id_to_name)
