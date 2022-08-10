@@ -50,6 +50,7 @@ def load_from_bytearray(request_body):
     image_as_bytes = io.BytesIO(request_body)
     image = Image.open(image_as_bytes)
     #todo: check 3 bands
+    #todo: instead of simple resize, consider filling
     mean = [0.485, 0.456, 0.406]
     std = [0.229, 0.224, 0.225]
 

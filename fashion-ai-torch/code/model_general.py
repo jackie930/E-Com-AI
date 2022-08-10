@@ -7,6 +7,7 @@ import torchvision.models as models
 class MultiOutputModel(nn.Module):
     def __init__(self, feature_dict):
         super().__init__()
+        # todo: add model support backbones
         self.base_model = models.mobilenet_v2().features  # take the model without classifier
         last_channel = models.mobilenet_v2().last_channel  # size of the layer before the classifier
         # the input for the classifier should be two-dimensional, but we will have
