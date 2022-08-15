@@ -5,11 +5,38 @@ import torchvision.models as models
 
 
 class MultiOutputModel(nn.Module):
-    def __init__(self, feature_dict):
+    def __init__(self, feature_dict, model_name):
         super().__init__()
         # todo: add model support backbones
-        self.base_model = models.mobilenet_v2().features  # take the model without classifier
-        last_channel = models.mobilenet_v2().last_channel  # size of the layer before the classifier
+        if model_name == 'mobilenet_v2':
+            # model_ft = models.inception_v3(pretrained=use_pretrained)
+            self.base_model = models.mobilenet_v2(pretrained=True).features  # take the model without classifier
+            last_channel = models.mobilenet_v2().last_channel  # size of the layer before the classifier
+
+        elif model_name == 'resnet':
+            x = models.resnet18(pretrained=True)
+            list(x.modules())  # to inspect the modules of your model
+            self.base_model = nn.Sequential(*list(x.modules())[:-2])  # strips off last linear layer
+            last_channel = x.fc.in_features
+
+        elif model_name == 'alexnet':
+            x = models.alexnet(pretrained=True)
+            list(x.modules())  # to inspect the modules of your model
+            self.base_model = nn.Sequential(*list(x.modules())[:-2])  # strips off last linear layer
+            last_channel = x.classifier[6].in_features
+
+        elif model_name == 'vgg':
+            x = models.vgg11_bn(pretrained=True)
+            list(x.modules())  # to inspect the modules of your model
+            self.base_model = nn.Sequential(*list(x.modules())[:-2])  # strips off last linear layer
+            last_channel = x.classifier[6].in_features
+
+        elif model_name == 'inception':
+            x = models.inception_v3(pretrained=True)
+            list(x.modules())  # to inspect the modules of your model
+            self.base_model = nn.Sequential(*list(x.modules())[:-2])  # strips off last linear layer
+            last_channel = x.fc.in_features
+
         # the input for the classifier should be two-dimensional, but we will have
         # [<batch_size>, <channels>, <width>, <height>]
         # so, let's do the spatial averaging: reduce <width> and <height> to 1
@@ -17,7 +44,7 @@ class MultiOutputModel(nn.Module):
         # create separate classifiers for our outputs
         self.key_ls = list(feature_dict.keys())
 
-        print ("<<< self.key_ls: ", self.key_ls)
+        print("<<< self.key_ls: ", self.key_ls)
         self.class_len_ls = list(feature_dict.values())
         print("<<< self.class_len_ls: ", self.class_len_ls)
 
@@ -25,7 +52,7 @@ class MultiOutputModel(nn.Module):
         for i in range(len(self.key_ls)):
             self.tasks.add_module(
                 self.key_ls[i], nn.Sequential(nn.Dropout(p=0.2),
-                nn.Linear(in_features=last_channel, out_features=self.class_len_ls[i])))
+                                              nn.Linear(in_features=last_channel, out_features=self.class_len_ls[i])))
 
 
     def forward(self, x):

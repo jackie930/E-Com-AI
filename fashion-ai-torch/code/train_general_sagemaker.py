@@ -43,6 +43,7 @@ if __name__ == '__main__':
     parser.add_argument('--save_epoch', type=int, default=1, help="save every n epoch")
     parser.add_argument('--val_epoch', type=int, default=1, help="val every n epoch")
     parser.add_argument('--num_workers', type=int, default=1, help="num_workers")
+    parser.add_argument('--model_name', type=str, default='resnet', help="pretrained model name")
 
     args = parser.parse_args()
 
@@ -81,7 +82,7 @@ if __name__ == '__main__':
     val_dataset = FashionDataset(os.path.join(args.sourcedir, 'test.csv'), attributes, val_transform)
     val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
 
-    model = MultiOutputModel(feature_dict=attributes.feature_dict).to(device)
+    model = MultiOutputModel(feature_dict=attributes.feature_dict, model_name=args.model_name).to(device)
     #print (summary(model,(3,244,244)))
 
     optimizer = torch.optim.Adam(model.parameters())
