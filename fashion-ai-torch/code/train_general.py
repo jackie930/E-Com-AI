@@ -31,6 +31,7 @@ if __name__ == '__main__':
     parser.add_argument('--sourcedir', type=str, default='./', help="train/test data folder")
     parser.add_argument('--batch_size', type=int, default=8, help="batch size")
     parser.add_argument('--epoch', type=int, default=10, help="train epoch")
+    parser.add_argument('--model_name', type=str, default='resnet', help="pretrained model name")
 
     args = parser.parse_args()
 
@@ -43,8 +44,11 @@ if __name__ == '__main__':
     # attributes variable contains labels for the categories in the dataset and mapping between string names and IDs
     attributes = AttributesDataset(args.attributes_file)
 
+    img_size = [1785,1340]
+
     # specify image transforms for augmentation during training
     train_transform = transforms.Compose([
+        transforms.Resize(img_size),
         transforms.RandomHorizontalFlip(p=0.5),
         transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0),
         transforms.RandomAffine(degrees=20, translate=(0.1, 0.1), scale=(0.8, 1.2),
@@ -55,6 +59,7 @@ if __name__ == '__main__':
 
     # during validation we use only tensor and normalization transforms
     val_transform = transforms.Compose([
+        transforms.Resize(img_size),
         transforms.ToTensor(),
         transforms.Normalize(mean, std)
     ])
@@ -65,8 +70,8 @@ if __name__ == '__main__':
     val_dataset = FashionDataset(os.path.join(args.sourcedir, 'test.csv'), attributes, val_transform)
     val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
 
-    model = MultiOutputModel(feature_dict=attributes.feature_dict).to(device)
-    #print (summary(model,(3,244,244)))
+    model = MultiOutputModel(feature_dict=attributes.feature_dict,model_name=args.model_name).to(device)
+    #print (summary(model,input_size=(3, 1785, 1340)))
 
     optimizer = torch.optim.Adam(model.parameters())
 

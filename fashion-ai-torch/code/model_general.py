@@ -16,26 +16,28 @@ class MultiOutputModel(nn.Module):
         elif model_name == 'resnet':
             x = models.resnet18(pretrained=True)
             list(x.modules())  # to inspect the modules of your model
-            self.base_model = nn.Sequential(*list(x.modules())[:-2])  # strips off last linear layer
+            self.base_model = nn.Sequential(*list(x.children())[:-2])  # strips off last linear layer
             last_channel = x.fc.in_features
 
+        '''
         elif model_name == 'alexnet':
             x = models.alexnet(pretrained=True)
             list(x.modules())  # to inspect the modules of your model
-            self.base_model = nn.Sequential(*list(x.modules())[:-2])  # strips off last linear layer
+            self.base_model = nn.Sequential(*list(x.children())[:-2])  # strips off last linear layer
             last_channel = x.classifier[6].in_features
 
         elif model_name == 'vgg':
             x = models.vgg11_bn(pretrained=True)
             list(x.modules())  # to inspect the modules of your model
-            self.base_model = nn.Sequential(*list(x.modules())[:-2])  # strips off last linear layer
+            self.base_model = nn.Sequential(*list(x.children())[:-2])  # strips off last linear layer
             last_channel = x.classifier[6].in_features
 
         elif model_name == 'inception':
             x = models.inception_v3(pretrained=True)
             list(x.modules())  # to inspect the modules of your model
-            self.base_model = nn.Sequential(*list(x.modules())[:-2])  # strips off last linear layer
+            self.base_model = nn.Sequential(*list(x.children())[:-2])  # strips off last linear layer
             last_channel = x.fc.in_features
+        '''
 
         # the input for the classifier should be two-dimensional, but we will have
         # [<batch_size>, <channels>, <width>, <height>]
