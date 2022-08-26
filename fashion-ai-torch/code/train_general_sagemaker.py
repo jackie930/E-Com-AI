@@ -85,6 +85,21 @@ if __name__ == '__main__':
     model = MultiOutputModel(feature_dict=attributes.feature_dict, model_name=args.model_name).to(device)
     #print (summary(model,(3,244,244)))
 
+    ##todo: load from state dict if exist s3 path & not null
+    savedir_ckpt = '/opt/ml/checkpoints/'
+    #if contains ckpt files
+    all_checkpoints = []
+    for f in os.listdir(savedir_ckpt):
+        file_name = os.path.join(savedir_ckpt, f)
+        if 'checkpoint' in file_name:
+            all_checkpoints.append(file_name)
+    print("all checkpoints: ", all_checkpoints)
+    if len(all_checkpoints)>0:
+        checkpoint = os.path.join(savedir_ckpt, all_checkpoints[-1])
+        model_ckpt = torch.load(checkpoint, map_location=device)
+        model.load_state_dict(model_ckpt['model_state_dict'])
+        print ("<<< training from last job!!!")
+
     optimizer = torch.optim.Adam(model.parameters())
 
     logdir = os.path.join('./logs/', get_cur_time())
@@ -155,4 +170,5 @@ if __name__ == '__main__':
             validate_general(model, val_dataloader, attributes, device)
 
         if epoch % args.save_epoch == 0:
+            checkpoint_save(model, savedir_ckpt, epoch, attributes.feature_dict, attributes.id_to_name)
             checkpoint_save(model, savedir, epoch, attributes.feature_dict, attributes.id_to_name)

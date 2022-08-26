@@ -37,7 +37,7 @@ def model_fn(model_dir):
      #   if k[:5] == 'tasks':
       #      res_dict[k.split(".")[1]] = len(v)
 
-    model = MultiOutputModel(feature_dict=model_ckpt['feature_dict']).to(device)
+    model = MultiOutputModel(feature_dict=model_ckpt['feature_dict'], model_name='resnet').to(device)
     model.load_state_dict(model_ckpt['model_state_dict'])
     model.eval()
 
