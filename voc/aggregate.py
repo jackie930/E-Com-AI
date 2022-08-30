@@ -1,12 +1,14 @@
-#pip install transformers
+# pip install transformers
 import pandas as pd
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import torch
 from transformers import AutoTokenizer, AutoConfig
 import numpy as np
 from scipy.special import softmax
+from transformers import pipeline
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 
 # Preprocess text (username and link placeholders)
 def preprocess(text):
@@ -17,11 +19,11 @@ def preprocess(text):
         new_text.append(t)
     return " ".join(new_text)
 
+
 def init_model_agg():
-    model = AutoModelForSequenceClassification.from_pretrained('cross-encoder/nli-distilroberta-base').to(device)
-    tokenizer = AutoTokenizer.from_pretrained('cross-encoder/nli-distilroberta-base')
-    model.eval()
-    return tokenizer, model
+    classifier = pipeline("zero-shot-classification", model='cross-encoder/nli-distilroberta-base')
+    return classifier
+
 
 def init_model_sentiment():
     MODEL = f"cardiffnlp/twitter-roberta-base-sentiment-latest"
@@ -30,21 +32,27 @@ def init_model_sentiment():
     # PT
     model = AutoModelForSequenceClassification.from_pretrained(MODEL).to(device)
     model.eval()
-    return tokenizer,config,model
+    return tokenizer, config, model
+
 
 def main(x):
-    #x = ("fit well", "size")
+    # x = ("fit well", "size")
     df_keys = pd.read_csv('key.csv')
     key_ls = df_keys[df_keys['cate'] == x[1]]['normed_word'].tolist()
 
     # get agg
-    tokenizer, model = init_model_agg()
-    features = tokenizer(x[0], padding=True, truncation=True, return_tensors="pt").to(device)
-    with torch.no_grad():
-        scores = model(**features).logits
-        labels = [key_ls[score_max] for score_max in scores.argmax(dim=1)]
+    classifier = init_model_agg()
+    sent = x[0]
+    candidate_labels = key_ls
+    res = classifier(sent, candidate_labels)
+    labels = res['labels']
+    scores = res['scores']
+    if scores[0] > 0.2:
+        labels = labels
+    else:
+        labels = [sent]
 
-    #get sentiment
+    # get sentiment
     tokenizer, config, model = init_model_sentiment()
     text = x[0]
     text = preprocess(text)
@@ -54,12 +62,13 @@ def main(x):
     scores = softmax(scores)
     res = config.id2label[np.argsort(scores)[-1]]
 
-    #get final result
-    result = (labels[0],res,x[1])
+    # get final result
+    result = (labels[0], res, x[1])
 
-    print ("input: ", x)
-    print ("finish process, results: ", result)
+    print("input: ", x)
+    print("finish process, results: ", result)
     return result
+
 
 if __name__ == '__main__':
     x = ("fit well", "size")
