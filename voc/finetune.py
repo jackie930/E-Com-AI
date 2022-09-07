@@ -319,7 +319,7 @@ if __name__ == '__main__':
         model = T5FineTuner(args)
 
         checkpoint_callback = pl.callbacks.ModelCheckpoint(
-            filepath=args.output_dir, prefix="ckt", monitor='val_loss', mode='min', save_top_k=1
+            filepath=args.output_dir, prefix="ckt", monitor='val_loss', mode='min', save_top_k=1, save_weights_only=True
         )
 
         # prepare for trainer
@@ -353,7 +353,7 @@ if __name__ == '__main__':
                 #    os.remove(file_name)
         print ("all checkpoints: ", all_checkpoints)
 
-        model.model.save_pretrained(args.output_dir)
+        #model.model.save_pretrained(args.output_dir)
 
         print("Finish training and saving the model!")
 
