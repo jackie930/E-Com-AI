@@ -319,7 +319,7 @@ if __name__ == '__main__':
         model = T5FineTuner(args)
 
         checkpoint_callback = pl.callbacks.ModelCheckpoint(
-            filepath=args.output_dir, prefix="ckt", monitor='val_loss', mode='min', save_top_k=3
+            filepath=args.output_dir, prefix="ckt", monitor='val_loss', mode='min', save_top_k=1
         )
 
         # prepare for trainer
@@ -346,11 +346,11 @@ if __name__ == '__main__':
         for f in os.listdir(saved_model_dir):
             file_name = os.path.join(saved_model_dir, f)
             print(file_name)
-            if 'cktepoch' in file_name:
-                if(file_name == os.path.join(saved_model_dir,'cktepoch={}.ckpt'.format(args.num_train_epochs))):
-                    all_checkpoints.append(file_name)
-                else:
-                    os.remove(file_name)
+            #if 'cktepoch' in file_name:
+             #   if(file_name == os.path.join(saved_model_dir,'cktepoch={}.ckpt'.format(args.num_train_epochs))):
+              #      all_checkpoints.append(file_name)
+               # else:
+                #    os.remove(file_name)
         print ("all checkpoints: ", all_checkpoints)
 
         model.model.save_pretrained(args.output_dir)
