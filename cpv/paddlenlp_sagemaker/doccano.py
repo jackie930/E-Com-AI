@@ -28,8 +28,12 @@ def do_convert():
     set_seed(args.seed)
 
     tic_time = time.time()
-    if not os.path.exists(args.doccano_file):
-        raise ValueError("Please input the correct path of doccano file.")
+    if args.folder_path=="":
+        if not os.path.exists(args.doccano_file):
+            raise ValueError("Please input the correct path of doccano file.")
+    else:
+        if not os.path.exists(args.folder_path):
+            raise ValueError("Please input the correct path of doccano file folder.")
 
     if not os.path.exists(args.save_dir):
         os.makedirs(args.save_dir)
@@ -46,8 +50,16 @@ def do_convert():
             "Please set correct splits, sum of elements in splits should be equal to 1."
         )
 
-    with open(args.doccano_file, "r", encoding="utf-8") as f:
-        raw_examples = f.readlines()
+    if args.folder_path:
+        files = os.listdir(args.folder_path)
+        raw_examples = []
+        for i in files:
+            if i!='.ipynb_checkpoints':
+                with open(os.path.join(args.folder_path,i), "r", encoding="utf-8") as f:
+                    raw_examples.extend(f.readlines())
+    else:
+        with open(args.doccano_file, "r", encoding="utf-8") as f:
+            raw_examples = f.readlines()
 
     def _create_ext_examples(examples,
                              negative_ratio,
@@ -152,7 +164,10 @@ if __name__ == "__main__":
     # yapf: disable
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--doccano_file", default="./data/doccano.json", type=str, help="The doccano file exported from doccano platform.")
+    parser.add_argument("--folder_path", default="", type=str,
+                        help="The doccano file folder")
+    parser.add_argument("--doccano_file", default="./data/doccano.json", type=str,
+                        help="The doccano file exported from doccano platform.")
     parser.add_argument("--save_dir", default="./data", type=str, help="The path of data that you wanna save.")
     parser.add_argument("--negative_ratio", default=5, type=int, help="Used only for the extraction task, the ratio of positive and negative samples, number of negtive samples = negative_ratio * number of positive samples")
     parser.add_argument("--splits", default=[0.8, 0.1, 0.1], type=float, nargs="*", help="The ratio of samples in datasets. [0.6, 0.2, 0.2] means 60% samples used for training, 20% for evaluation and 20% for test.")

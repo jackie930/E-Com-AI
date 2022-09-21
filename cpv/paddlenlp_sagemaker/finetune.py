@@ -137,8 +137,8 @@ def do_train():
                     os.makedirs(save_dir)
                 model_to_save = model._layers if isinstance(
                     model, paddle.DataParallel) else model
-                model_to_save.save_pretrained(save_dir)
-                tokenizer.save_pretrained(save_dir)
+                #model_to_save.save_pretrained(save_dir)
+                #tokenizer.save_pretrained(save_dir)
 
                 precision, recall, f1 = evaluate(model, metric, dev_data_loader)
                 logger.info("Evaluation precision: %.5f, recall: %.5f, F1: %.5f"
