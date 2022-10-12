@@ -92,8 +92,7 @@ class UIEPredictor(object):
                 type(args.device))
             exit(0)
 
-        self._tokenizer = AutoTokenizer.from_pretrained(
-            "ernie-3.0-base-zh", use_faster=True)
+        self._tokenizer = AutoTokenizer.from_pretrained(args.tokenizer)
         self._position_prob = args.position_prob
         self._max_seq_len = args.max_seq_len
         self._schema_tree = None

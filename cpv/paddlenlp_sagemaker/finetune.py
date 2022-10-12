@@ -95,6 +95,13 @@ def do_train():
     if paddle.distributed.get_world_size() > 1:
         model = paddle.DataParallel(model)
 
+    #freeze the base encoder layers for few-shot learning
+    if args.freeze is True:
+        print ("<<<< freeze the encoder layers!!!")
+        for name, param in model.named_parameters():
+            if "encoder" in name:
+                param.requires_grad = False
+
     optimizer = paddle.optimizer.AdamW(
         learning_rate=args.learning_rate, parameters=model.parameters())
 
@@ -193,6 +200,8 @@ if __name__ == "__main__":
     parser.add_argument('--device', choices=['cpu', 'gpu'], default="gpu", help="Select which device to train model, defaults to gpu.")
     parser.add_argument("--model", choices=["uie-base", "uie-tiny"], default="uie-base", type=str, help="Select the pretrained model for few-shot learning.")
     parser.add_argument("--init_from_ckpt", default=None, type=str, help="The path of model parameters for initialization.")
+    parser.add_argument("--freeze", default=False, type=bool,
+                        help="freeze for few-shot learning")
 
     args = parser.parse_args()
     # yapf: enable

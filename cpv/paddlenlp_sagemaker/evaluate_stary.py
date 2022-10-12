@@ -40,6 +40,7 @@ def evaluate(model, metric, data_loader):
     """
     model.eval()
     metric.reset()
+    total_correct = 0
     for batch in data_loader:
         #print ("<<< batch", len(batch))
         input_ids, token_type_ids, att_mask, pos_ids, start_ids, end_ids = batch
@@ -65,9 +66,10 @@ def evaluate(model, metric, data_loader):
         #print ("pred_set {}".format(pred_set))
         #print ("num_correct: {}, num_infer: {}, num_label {}".format(num_correct,num_infer,num_label))
         metric.update(num_correct, num_infer, num_label)
+        total_correct = total_correct+num_label
     precision, recall, f1 = metric.accumulate()
     model.train()
-    return precision, recall, f1
+    return precision, recall, f1, total_correct
 
 
 def do_eval():
@@ -102,6 +104,14 @@ def do_eval():
                        tokenizer=tokenizer,
                        max_seq_len=args.max_seq_len)
 
+    key_ls = []
+    p_ls = []
+    f_ls = []
+    r_ls = []
+    line_num = []
+    class_num = []
+
+
     for key in class_dict.keys():
         if args.debug:
             test_ds = MapDataset(class_dict[key])
@@ -115,12 +125,29 @@ def do_eval():
 
         metric = SpanEvaluator()
         print ("<<< start evaluate")
-        precision, recall, f1 = evaluate(model, metric, test_data_loader)
+        precision, recall, f1, total_correct = evaluate(model, metric, test_data_loader)
         logger.info("-----------------------------")
         logger.info("Class Name: %s" % key)
-        logger.info("Class length: %s" % len(test_ds))
+        logger.info("Class length lines: %s" % len(test_ds))
+        logger.info("Class length number: %s" % total_correct)
         logger.info("Evaluation Precision: %.5f | Recall: %.5f | F1: %.5f" %
                     (precision, recall, f1))
+        key_ls.append(key)
+        p_ls.append(precision)
+        r_ls.append(recall)
+        f_ls.append(f1)
+        line_num.append(len(test_ds))
+        class_num.append(total_correct)
+
+    df_res = pd.DataFrame({'Class_Name':key_ls,
+                           'Class_line_num':line_num,
+                           'Class_num':class_num,
+                           'precision':p_ls,
+                           'recall':r_ls,
+                           'f1':f_ls})
+
+    df_res.to_csv(args.save_name)
+    print ("<<<< finished!")
 
     if args.debug and len(relation_type_dict.keys()) != 0:
         for key in relation_type_dict.keys():
@@ -148,6 +175,9 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=16, help="Batch size per GPU/CPU for training.")
     parser.add_argument("--max_seq_len", type=int, default=512, help="The maximum total input sequence length after tokenization.")
     parser.add_argument("--debug", action='store_true', help="Precision, recall and F1 score are calculated for each class separately if this option is enabled.")
+    parser.add_argument("--save_name", type=str, default='./res.csv',
+                        help="save path")
+
 
     args = parser.parse_args()
     # yapf: enable

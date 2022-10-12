@@ -28,7 +28,8 @@ def model_fn(model_dir):
     args.model_path_prefix = os.path.join(model_dir, 'inference')
 #     args.device = 'cpu'
     args.device = 'gpu'
-    args.schema = ['法院', {'原告': '委托代理人'}, {'被告': '委托代理人'}]
+    args.tokenizer = model_dir
+    args.schema = ['person', 'occupation', 'abuse', 'sexual description', 'status', 'royal', 'location', 'personality', 'age', 'family', 'Sexual description', 'parts of body', 'height', 'color', 'race', 'gender', 'event']
     predictor = UIEPredictor(args)
     return predictor
 
