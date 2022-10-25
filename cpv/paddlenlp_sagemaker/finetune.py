@@ -139,13 +139,14 @@ def do_train():
                 tic_train = time.time()
 
             if global_step % args.valid_steps == 0 and rank == 0:
-                save_dir = os.path.join(args.save_dir, "model_%d" % global_step)
+                #save_dir = os.path.join(args.save_dir, "model_%d" % global_step)
+                save_dir = os.path.join(args.save_dir, "model_best")
                 if not os.path.exists(save_dir):
                     os.makedirs(save_dir)
                 model_to_save = model._layers if isinstance(
                     model, paddle.DataParallel) else model
-                #model_to_save.save_pretrained(save_dir)
-                #tokenizer.save_pretrained(save_dir)
+                model_to_save.save_pretrained(save_dir)
+                tokenizer.save_pretrained(save_dir)
 
                 precision, recall, f1 = evaluate(model, metric, dev_data_loader)
                 logger.info("Evaluation precision: %.5f, recall: %.5f, F1: %.5f"
