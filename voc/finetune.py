@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import os
+
 print(os.getcwd())
 if os.path.exists('./requirements.txt'):
     os.system('pip install -r requirements.txt')
@@ -20,13 +21,14 @@ from transformers import get_linear_schedule_with_warmup
 
 from data_utils import ABSADataset
 from data_utils import write_results_to_log, read_line_examples_from_file
-from eval_utils import compute_scores, compute_scores_jj
+from eval_utils_hb import compute_scores_huabao
 
 logger = logging.getLogger(__name__)
-print ("<<<run train!!")
+print("<<<run train!!")
 
-#hyperparameters = environment.hyperparameters
-#print ("hyperparameters: ", hyperparameters)
+
+# hyperparameters = environment.hyperparameters
+# print ("hyperparameters: ", hyperparameters)
 
 def init_args():
     parser = argparse.ArgumentParser()
@@ -41,11 +43,16 @@ def init_args():
                         help="Path to pre-trained model or shortcut name")
     parser.add_argument("--paradigm", default='annotation', type=str, required=False,
                         help="The way to construct target sentence, selected from: [annotation, extraction]")
-    parser.add_argument("--do_train", default=True, type=lambda x: (str(x).lower() == 'true'), help="Whether to run training.")
-    parser.add_argument("--do_eval", default=False, type=lambda x: (str(x).lower() == 'true'), help="Whether to run eval on the dev/test set.")
-    parser.add_argument("--do_batch_predict", default=False, type=lambda x: (str(x).lower() == 'true'), help="Whether to run batch prediction")
-    parser.add_argument("--do_direct_eval", default=False, type=lambda x: (str(x).lower() == 'true'), help="Whether to run direct eval on the dev/test set.")
-    parser.add_argument("--do_direct_predict", default=False, type=lambda x: (str(x).lower() == 'true'), help="Whether to run direct eval on the dev/test set.")
+    parser.add_argument("--do_train", default=True, type=lambda x: (str(x).lower() == 'true'),
+                        help="Whether to run training.")
+    parser.add_argument("--do_eval", default=False, type=lambda x: (str(x).lower() == 'true'),
+                        help="Whether to run eval on the dev/test set.")
+    parser.add_argument("--do_batch_predict", default=False, type=lambda x: (str(x).lower() == 'true'),
+                        help="Whether to run batch prediction")
+    parser.add_argument("--do_direct_eval", default=False, type=lambda x: (str(x).lower() == 'true'),
+                        help="Whether to run direct eval on the dev/test set.")
+    parser.add_argument("--do_direct_predict", default=False, type=lambda x: (str(x).lower() == 'true'),
+                        help="Whether to run direct eval on the dev/test set.")
     parser.add_argument("--text",
                         default='早餐一般般，勉勉强强填饱肚子，样式可选性不多，可能是疫情的影响吧。不过酒店的服务不错，五个小孩早餐都送了，点👍。由于酒店历史有点长，所以设施感觉一般般，整体还可以，三钻吧',
                         type=str, required=False)
@@ -209,12 +216,11 @@ class T5FineTuner(pl.LightningModule):
         print('train Input :', self.tokenizer.decode(data_sample['source_ids'], skip_special_tokens=True))
         print('train Output:', self.tokenizer.decode(data_sample['target_ids'], skip_special_tokens=True))
 
-
-        print ("self.hparams.n_gpu: ",self.hparams.n_gpu)
+        print("self.hparams.n_gpu: ", self.hparams.n_gpu)
 
         t_total = len(dataloader.dataset) * float(self.hparams.num_train_epochs)
 
-        print ("t_total: ", t_total)
+        print("t_total: ", t_total)
 
         scheduler = get_linear_schedule_with_warmup(
             self.opt, num_warmup_steps=self.hparams.warmup_steps, num_training_steps=t_total
@@ -225,6 +231,7 @@ class T5FineTuner(pl.LightningModule):
     def val_dataloader(self):
         val_dataset = get_dataset(tokenizer=self.tokenizer, type_path="dev", args=self.hparams)
         return DataLoader(val_dataset, batch_size=self.hparams.eval_batch_size, num_workers=4)
+
 
 class LoggingCallback(pl.Callback):
     def on_validation_end(self, trainer, pl_module):
@@ -250,7 +257,8 @@ class LoggingCallback(pl.Callback):
                     logger.info("{} = {}\n".format(key, str(metrics[key])))
                     writer.write("{} = {}\n".format(key, str(metrics[key])))
 
-def evaluate(data_loader, model, paradigm, task, sents, custom=False):
+
+def evaluate(data_loader, model, paradigm, task, sents, custom=False, customer_hb=True):
     """
     Compute scores given the predictions and gold labels
     """
@@ -270,14 +278,28 @@ def evaluate(data_loader, model, paradigm, task, sents, custom=False):
 
         outputs.extend(dec)
         targets.extend(target)
+
     if custom:
-        #jijia
-        print ("customer score compute")
-        raw_scores = compute_scores_jj(outputs, targets, sents, paradigm,task)
+        # jijia
+        print("customer score compute")
+        raw_scores = compute_scores_jj(outputs, targets, sents, paradigm, task)
+
+    elif customer_hb:
+        raw_scores, all_labels, all_predictions = compute_scores_huabao(outputs, targets, sents, paradigm, task)
+        results = {'outputs': outputs,
+                   'targets': targets,
+                   'sents': sents}
+
+        # results_pred = {'sent':sents,"label":all_labels_with_tag,"pred":all_predictions_with_tag}
+        pickle.dump(results,
+                    open(f"{args.output_dir}/results-{args.task}-{args.dataset}-{args.paradigm}-allres.pickle", 'wb'))
+        # pickle.dump(res_tag, open(f"{args.output_dir}/results-{args.task}-{args.dataset}-{args.paradigm}-tagres.pickle", 'wb'))
+        # pickle.dump(results_pred, open(f"{args.output_dir}/results-{args.task}-{args.dataset}-{args.paradigm}-pred.pickle", 'wb'))
+
 
     else:
-        raw_scores, res_tag, fixed_scores, all_labels, all_predictions, all_predictions_fixed, fixed_res_tag,all_labels_with_tag,all_predictions_with_tag = compute_scores(outputs, targets, sents, paradigm,
-                                                                                          task)
+        raw_scores, res_tag, fixed_scores, all_labels, all_predictions, all_predictions_fixed, fixed_res_tag, all_labels_with_tag, all_predictions_with_tag = compute_scores(
+            outputs, targets, sents, paradigm, task)
         results = {'raw_scores': raw_scores,
                    'fixed_scores': fixed_scores,
                    'labels': all_labels,
@@ -285,19 +307,23 @@ def evaluate(data_loader, model, paradigm, task, sents, custom=False):
                    'preds': all_predictions,
                    'preds_fixed': all_predictions_fixed}
 
-        results_pred = {'sent':sents,"label":all_labels_with_tag,"pred":all_predictions_with_tag}
-        pickle.dump(results, open(f"{args.output_dir}/results-{args.task}-{args.dataset}-{args.paradigm}-allres.pickle", 'wb'))
-        pickle.dump(res_tag, open(f"{args.output_dir}/results-{args.task}-{args.dataset}-{args.paradigm}-tagres.pickle", 'wb'))
-        pickle.dump(results_pred, open(f"{args.output_dir}/results-{args.task}-{args.dataset}-{args.paradigm}-pred.pickle", 'wb'))
+        results_pred = {'sent': sents, "label": all_labels_with_tag, "pred": all_predictions_with_tag}
+        pickle.dump(results,
+                    open(f"{args.output_dir}/results-{args.task}-{args.dataset}-{args.paradigm}-allres.pickle", 'wb'))
+        pickle.dump(res_tag,
+                    open(f"{args.output_dir}/results-{args.task}-{args.dataset}-{args.paradigm}-tagres.pickle", 'wb'))
+        pickle.dump(results_pred,
+                    open(f"{args.output_dir}/results-{args.task}-{args.dataset}-{args.paradigm}-pred.pickle", 'wb'))
 
     return raw_scores
+
 
 if __name__ == '__main__':
     # initialization
     args = init_args()
 
-    print ("args task: ",args.task)
-    
+    print("args task: ", args.task)
+
     print("\n", "=" * 30, f"NEW EXP: {args.task.upper()} on {args.dataset}", "=" * 30, "\n")
 
     seed_everything(args.seed)
@@ -341,19 +367,19 @@ if __name__ == '__main__':
         # save the final model
         # retrieve all the saved checkpoints for model selection
         saved_model_dir = args.output_dir
-        print ("save output model path: ", saved_model_dir)
+        print("save output model path: ", saved_model_dir)
         all_checkpoints = []
         for f in os.listdir(saved_model_dir):
             file_name = os.path.join(saved_model_dir, f)
             print(file_name)
-            #if 'cktepoch' in file_name:
-             #   if(file_name == os.path.join(saved_model_dir,'cktepoch={}.ckpt'.format(args.num_train_epochs))):
-              #      all_checkpoints.append(file_name)
-               # else:
-                #    os.remove(file_name)
-        print ("all checkpoints: ", all_checkpoints)
+            # if 'cktepoch' in file_name:
+            #   if(file_name == os.path.join(saved_model_dir,'cktepoch={}.ckpt'.format(args.num_train_epochs))):
+            #      all_checkpoints.append(file_name)
+            # else:
+            #    os.remove(file_name)
+        print("all checkpoints: ", all_checkpoints)
 
-        #model.model.save_pretrained(args.output_dir)
+        # model.model.save_pretrained(args.output_dir)
 
         print("Finish training and saving the model!")
 
@@ -438,7 +464,16 @@ if __name__ == '__main__':
         print("\n****** Conduct Evaluating with the last state ******")
 
         device = torch.device(f'cuda:{args.n_gpu}')
-        checkpoint = args.ckpoint_path
+        # retrieve all the saved checkpoints for model selection
+        saved_model_dir = args.output_dir
+        for f in os.listdir(saved_model_dir):
+            file_name = os.path.join(saved_model_dir, f)
+            if 'cktepoch' in file_name:
+                all_checkpoints.append(file_name)
+
+        print("all checkpoints: ", all_checkpoints)
+        checkpoint = os.path.join(saved_model_dir, all_checkpoints[-1])
+
         print(f"\nLoad the trained model from {checkpoint}...")
         model_ckpt = torch.load(checkpoint, map_location=device)
         model = T5FineTuner(model_ckpt['hyper_parameters'])
@@ -449,28 +484,28 @@ if __name__ == '__main__':
 
         # print("Reload the model")
         # model.model.from_pretrained(args.output_dir)
-        print ("<<< read lines")
+        print("<<< read lines")
 
-        #sents, _ = read_line_examples_from_file(f'data/{args.task}/{args.dataset}/test.txt')
-        sents, _ = read_line_examples_from_file(f'/opt/ml/input/data/{args.dataset}/test.txt')
+        # sents, _ = read_line_examples_from_file(f'data/{args.task}/{args.dataset}/test.txt')
+        sents, _ = read_line_examples_from_file(f'/opt/ml/input/data/{args.task}/{args.dataset}/test.txt')
 
         print("<<< load test data")
         test_dataset = ABSADataset(tokenizer, data_dir=args.dataset, data_type='test',
                                    paradigm=args.paradigm, task=args.task, max_len=args.max_seq_length)
         test_loader = DataLoader(test_dataset, batch_size=32, num_workers=4)
         print("<<<< start evaluate")
-        raw_scores = evaluate(test_loader, model, args.paradigm, args.task,  sents, custom=args.customer_jj)
+        raw_scores = evaluate(test_loader, model, args.paradigm, args.task, sents, custom=args.customer_jj)
         # print(scores)
 
         # write to file
-        #log_file_path = f"results_fscore_by_tag/{args.task}-{args.dataset}.txt"
-        #local_time = time.asctime(time.localtime(time.time()))
-        #exp_settings = f"{args.task} on {args.dataset} under {args.paradigm}; Train bs={args.train_batch_size}, num_epochs = {args.num_train_epochs}"
-        #exp_results = f"Raw F1 = {raw_scores['f1']:.4f}, Fixed F1 = {fixed_scores['f1']:.4f}"
-        #log_str = f'============================================================\n'
-        #log_str += f"{local_time}\n{exp_settings}\n{exp_results}\n\n"
-        #with open(log_file_path, "a+") as f:
-         #   f.write(log_str)
+        # log_file_path = f"results_fscore_by_tag/{args.task}-{args.dataset}.txt"
+        # local_time = time.asctime(time.localtime(time.time()))
+        # exp_settings = f"{args.task} on {args.dataset} under {args.paradigm}; Train bs={args.train_batch_size}, num_epochs = {args.num_train_epochs}"
+        # exp_results = f"Raw F1 = {raw_scores['f1']:.4f}, Fixed F1 = {fixed_scores['f1']:.4f}"
+        # log_str = f'============================================================\n'
+        # log_str += f"{local_time}\n{exp_settings}\n{exp_results}\n\n"
+        # with open(log_file_path, "a+") as f:
+        #   f.write(log_str)
 
     if args.do_direct_predict:
         print("\n****** Conduct predicting with the last state ******")

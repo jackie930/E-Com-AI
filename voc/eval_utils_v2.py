@@ -445,41 +445,6 @@ def compute_f1_scores_tag(pred_pt, gold_pt):
     return scores,res
 
 
-def compute_scores_huabao(pred_seqs, gold_seqs, sents, io_format, task):
-    """
-    compute metrics for multiple tasks
-    """
-    assert len(pred_seqs) == len(gold_seqs)
-    num_samples = len(gold_seqs)
-
-    all_labels, all_predictions = [], []
-    all_labels_with_tag = []
-    all_predictions_with_tag = []
-
-    for i in range(num_samples):
-    #for i in range(10):
-        if io_format == 'annotation':
-            gold_list,gold_extractions_with_aspect = extract_spans_annotation(task, gold_seqs[i])
-            pred_list,pred_extractions_with_aspect = extract_spans_annotation(task, pred_seqs[i])
-        elif io_format == 'extraction':
-            gold_list,gold_extractions_with_aspect = extract_spans_extraction(task, gold_seqs[i],2)
-            pred_list,pred_extractions_with_aspect = extract_spans_extraction(task, pred_seqs[i],2)
-
-        all_labels.append(gold_list)
-        all_predictions.append(pred_list)
-
-        all_labels_with_tag.append(gold_extractions_with_aspect)
-        all_predictions_with_tag.append(pred_extractions_with_aspect)
-
-
-    print("\nResults of raw output, total")
-    raw_scores = compute_f1_scores(all_predictions_with_tag, all_labels_with_tag)
-    print(raw_scores)
-
-
-    return raw_scores, all_labels_with_tag, all_predictions_with_tag
-
-
 def compute_scores(pred_seqs, gold_seqs, sents, io_format, task):
     """
     compute metrics for multiple tasks
@@ -501,10 +466,22 @@ def compute_scores(pred_seqs, gold_seqs, sents, io_format, task):
             pred_list,pred_extractions_with_aspect = extract_spans_extraction(task, pred_seqs[i],2)
 
         all_labels.append(gold_list)
+
+        while '' in pred_list:
+            pred_list.remove('')
+
+        while ('','') in pred_extractions_with_aspect:
+            pred_extractions_with_aspect.remove(('',''))
+
         all_predictions.append(pred_list)
+        #print ("<<< all labels: ", gold_list)
+        #print("<<< all_predictions: ", pred_list)
 
         all_labels_with_tag.append(gold_extractions_with_aspect)
         all_predictions_with_tag.append(pred_extractions_with_aspect)
+        #print("<<< all gold_extractions_with_aspect: ", gold_extractions_with_aspect)
+        #print("<<< pred_extractions_with_aspect: ", pred_extractions_with_aspect)
+
 
     print("\nResults of raw output, only tag category")
     raw_scores, res_tag = compute_f1_scores_tag(all_predictions, all_labels)
@@ -515,16 +492,15 @@ def compute_scores(pred_seqs, gold_seqs, sents, io_format, task):
     print(raw_scores_2)
 
     # fix the issues due to generation
-    all_predictions_fixed = fix_pred_with_editdistance(all_predictions, sents, task)
-    print ("raw results: ", all_predictions[:5])
-    print ("all_predictions_fixed: ", all_predictions_fixed[:5])
+    #all_predictions_fixed = fix_pred_with_editdistance(all_predictions, sents, task)
+    #print ("raw results: ", all_predictions[:5])
+    #print ("all_predictions_fixed: ", all_predictions_fixed[:5])
 
-    print("\nResults of fixed output")
-    fixed_scores, fixed_res_tag = compute_f1_scores_tag(all_predictions_fixed, all_labels)
-    print(fixed_scores)
+    #print("\nResults of fixed output")
+    #fixed_scores, fixed_res_tag = compute_f1_scores_tag(all_predictions_fixed, all_labels)
+    #print(fixed_scores)
 
-    return raw_scores, res_tag, fixed_scores, all_labels, all_predictions, all_predictions_fixed,fixed_res_tag, all_labels_with_tag,all_predictions_with_tag
-
+    return raw_scores
 
 def compute_scores_jj(pred_seqs, gold_seqs, sents, io_format, task):
     """
